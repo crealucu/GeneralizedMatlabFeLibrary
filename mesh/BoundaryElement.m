@@ -142,7 +142,7 @@ classdef BoundaryElement < handle
         [~, ix, jx] = unique(tmp_face_ids);        
         N = histcounts(jx, 1:(numel(tmp_face_ids)+1));
         qx = (N==obj.nne);
-        obj.bndElemSideId(ia) = ix(qx);
+        obj.bndElemSideId(ia) = tmp_face_ids(ix(qx));
       end
     end
   end
