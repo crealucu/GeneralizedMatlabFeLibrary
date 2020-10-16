@@ -80,7 +80,7 @@ classdef ElementSide
     end
     function node = sideNodeIDs(obj, eType, eOrder)
       if(eType == EnumElementType.Line && eOrder == 0)
-        node = cell2mat(obj.Side.(sprintf('%s', eType)){eOrder+1});
+        node = cell2mat(obj.Side.(sprintf('%s', eType)){eOrder+1})';
       else      
         node = cell2mat(obj.Side.(sprintf('%s', eType)){eOrder+1}(:));
       end
