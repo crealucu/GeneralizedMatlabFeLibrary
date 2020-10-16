@@ -47,14 +47,13 @@ classdef BndFemLib < FemLib
 % 08-Oct-2020; Last revision:
   properties
     bnd;
-    elemSideId;
+    elemSideIDs;
     normal;
   end
   methods
     function obj = BndFemLib
       obj.funcs = load('ShapeFunctions.mat');
-      eSide = ElementSide;
-      obj.elemSideId = eSide.Side;
+      obj.elemSideIDs = ElementSide;
     end
     function set_an_element(obj, coord, eid, eType, sideId, eOrder, iOrder)
       if(nargin < 6); eOrder = 0;  end % will set default
@@ -73,7 +72,7 @@ classdef BndFemLib < FemLib
       obj.bnd.dN_of_kez = obj.funcs.dN.(sprintf('%s', obj.bnd.etype)){obj.bnd.eOder+1};
       obj.bnd.itgPts = intPtsVolToBnd(eType, sideId, obj.quadRule.points);
       obj.bnd.sideId = sideId;
-      [obj.bnd.nodeIds, obj.bnd.nne] = nodeIdVolToBnd(obj.elemSideId, eType, eOrder, sideId);
+      [obj.bnd.nodeIds, obj.bnd.nne] = obj.elemSideIDs.nodeIdVolToBnd(eType, eOrder, sideId);
     end
     function ElemBasis(obj, itgID)
       %
@@ -177,9 +176,4 @@ function itgPts = intPtsVolToBnd(eType, sideId, pts)
           itgPts = [z-1, pts(:, 1:2)];
       end
   end
-end
-function [nodeId, bnd_nne] = nodeIdVolToBnd(elmSideIds, eType, eOrder, sideId)
-  faces = elmSideIds.(sprintf('%s', eType)){eOrder+1};
-  nodeId = faces{sideId};
-  bnd_nne = numel(nodeId);
 end
