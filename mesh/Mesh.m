@@ -46,8 +46,7 @@ classdef Mesh < handle
       obj.elemno    = 0;
       obj.node      = [];
       obj.elem      = [];
-      obj.nsd       = 0;
-      obj.nsd       = 0;
+      obj.nsd       = -1;
       obj.bndElem   = BoundaryElement;
     end
     function h = plot_mesh(obj, b, e, disp)
@@ -94,6 +93,112 @@ classdef Mesh < handle
       for ia = 0: edgeno-1
         new_elem(:, ia+1) = jx(obj.elemno*ia + eid);
       end
+    end
+    function export_mesh_to_stl(obj, fn)
+      [im, in] = size(obj.bndElem.elem);      
+      bnd = obj.bndElem.elem(:);      
+      
+      e = unique(bnd);
+      n = zeros(obj.nodeno, 1);
+            
+      n(e) = (1:numel(e))';
+      bnd = reshape(n(bnd), im, in);
+      
+      TR = triangulation(bnd, obj.node(n>0, :));
+      stlwrite(TR, fn, 'text');
+    end
+    function import_mesh_by_node_element(obj, N, E, kill_set_surface)
+      if(nargin<4)
+        kill_set_surface = false;
+      end
+      
+      [obj.elemno, obj.nne] = size(E);
+      [obj.nodeno, obj.nsd] = size(N);
+      
+      obj.elemOrder = 0;
+      
+      unknown = true;
+      switch(obj.nsd)
+        case 1
+          if(obj.nne == 0)
+            obj.elemType = EnumElementType.Point;
+            unknown = false;
+          else
+            obj.elemType = EnumElementType.Line;
+            obj.elemOrder = obj.nne - 2;
+            unknown = false;
+          end
+        case 2
+          switch(obj.nne)
+            case 3
+              obj.elemType = EnumElementType.Triangle;
+              unknown = false;
+            case 4
+              obj.elemType = EnumElementType.Quadrilateral;
+              unknown = false;
+            case 6
+              obj.elemType = EnumElementType.Triangle;
+              obj.elemOrder = 1;
+              unknown = false;
+            case 8
+              obj.elemType = EnumElementType.Quadrilateral;
+              obj.elemOrder = 1;
+              unknown = false;
+          end
+        case 3
+          switch(obj.nne)
+            case 4
+              obj.elemType = EnumElementType.Tetrahedron;
+              unknown = false;
+            case 8
+              obj.elemType = EnumElementType.Hexahedron;
+              unknown = false;
+            case 10
+              obj.elemType = EnumElementType.Tetrahedron;
+              obj.elemOrder = 1;
+              unknown = false;
+            case 20
+              obj.elemType = EnumElementType.Hexahedron;
+              obj.elemOrder = 1;
+              unknown = false;
+          end
+      end
+      
+      if(unknown)
+        fprintf('Unknown element type\n');
+        obj.elemno = 0;
+        obj.nne    = 0;
+        obj.nodeno = 0;
+        obj.nsd    = -1;
+        obj.elemOrder = -1;
+        return;
+      end
+      obj.elem = E;
+      obj.node = N;
+      if(kill_set_surface)
+        return;
+      end
+      obj.bndElem.ConstructBoundaryElement(obj);
+    end
+    function import_mesh_by_node(obj, N, kill_set_surface)
+      if(nargin<3); kill_set_surface = false; end
+      E = delaunayn(N,{'Qt','Qbb','Qc','Qz'});
+      obj.import_mesh_by_node_element(N, E, kill_set_surface);
+    end
+    function import_stl_mesh(obj, fn, eOrder)
+      if(nargin<3)
+        eOrder = 0;
+      end
+      
+      if(eOrder == 0)
+        o = 'linear';
+      else
+        o = 'quadratic';
+      end
+      model = createpde;
+      importGeometry(model, fn);
+      generateMesh(model, 'GeometricOrder', o);
+      obj.import_mesh_by_node_element(model.Mesh.Nodes', model.Mesh.Elements');
     end
   end
 end
